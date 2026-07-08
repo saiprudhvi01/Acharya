@@ -11,9 +11,15 @@ export async function GET(request: NextRequest) {
     const teacherId = searchParams.get('teacherId');
     const search = searchParams.get('search');
 
-    let query = 'SELECT c.*, u.name as teacherName, u.email as teacherEmail, u.avatar as teacherAvatar FROM courses c JOIN users u ON c.teacherId = u.id WHERE c.isApproved = 1';
     const params: any[] = [];
+    // If fetching by teacherId, show all their courses (approved or not)
+    let query = teacherId
+      ? 'SELECT c.*, u.name as teacherName, u.email as teacherEmail, u.avatar as teacherAvatar FROM courses c JOIN users u ON c.teacherId = u.id WHERE c.teacherId = ?'
+      : 'SELECT c.*, u.name as teacherName, u.email as teacherEmail, u.avatar as teacherAvatar FROM courses c JOIN users u ON c.teacherId = u.id WHERE c.isApproved = 1';
 
+    if (teacherId) {
+      params.push(teacherId);
+    }
     if (category) {
       query += ' AND c.category = ?';
       params.push(category);
@@ -25,10 +31,6 @@ export async function GET(request: NextRequest) {
     if (skillLevel) {
       query += ' AND c.skillLevel = ?';
       params.push(skillLevel);
-    }
-    if (teacherId) {
-      query += ' AND c.teacherId = ?';
-      params.push(teacherId);
     }
     if (search) {
       query += ' AND (c.title LIKE ? OR c.description LIKE ?)';
@@ -84,9 +86,9 @@ export async function POST(request: NextRequest) {
 
     // Create course
     const result = db.prepare(`
-      INSERT INTO courses (title, description, teacherId, category, subject, duration, price, skillLevel, thumbnail)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(title, description, teacherId, category, subject, duration, price, skillLevel || 'beginner', coverImage);
+      INSERT INTO courses (title, description, teacherId, category, subject, duration, price, skillLevel, thumbnail, isApproved)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(title, description, teacherId, category, subject, duration, price, skillLevel || 'beginner', coverImage || null);
 
     const courseId = result.lastInsertRowid;
 

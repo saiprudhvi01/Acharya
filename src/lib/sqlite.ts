@@ -187,6 +187,46 @@ export function initDB() {
       FOREIGN KEY (courseId) REFERENCES courses(id)
     )
   `);
+
+  // Course materials table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS course_materials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      courseId INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL,
+      url TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (courseId) REFERENCES courses(id)
+    )
+  `);
+
+  // Notifications table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      isRead INTEGER DEFAULT 0,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Certificates table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS certificates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentId INTEGER NOT NULL,
+      courseId INTEGER NOT NULL,
+      fileUrl TEXT NOT NULL,
+      issuedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(studentId, courseId),
+      FOREIGN KEY (studentId) REFERENCES users(id),
+      FOREIGN KEY (courseId) REFERENCES courses(id)
+    )
+  `);
 }
 
 // Initialize database on import
