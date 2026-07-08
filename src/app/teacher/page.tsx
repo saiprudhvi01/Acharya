@@ -192,9 +192,11 @@ export default function TeacherDashboard() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       {/* Sidebar */}
       <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col fixed h-full z-40 relative hidden md:flex">
-        <div className="p-6 flex items-center gap-2">
-          <BookPlus className="text-purple-600 dark:text-purple-400 w-8 h-8" />
-          <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Acharya Educator</span>
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
+            <BookPlus className="text-white w-5 h-5" />
+          </div>
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Acharya Educator</span>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
@@ -243,12 +245,15 @@ export default function TeacherDashboard() {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
-                {user?.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
+              <div className="relative">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
+                  {user?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900" />
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium">{user?.name || ""}</p>
-                <p className="text-xs text-slate-500">{user?.subjects?.[0] || user?.email || ""}</p>
+                <p className="text-sm font-semibold">{user?.name || ""}</p>
+                <p className="text-xs text-purple-500 font-medium">Educator</p>
               </div>
             </div>
           </div>
