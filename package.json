@@ -9,7 +9,7 @@
     "dev": "node socket-server.js",
     "dev:socket": "node socket-server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "node socket-server.js",
     "lint": "eslint"
   },
   "dependencies": {

@@ -50,20 +50,21 @@ export default function AdminDashboard() {
         fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/admin/payments", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
+      
       if (analyticsRes.ok) {
         const data = await analyticsRes.json();
         setStats(data.stats);
       }
       if (usersRes.ok) {
         const data = await usersRes.json();
-        const users: AdminUser[] = data.users.filter((u: AdminUser) => u.role !== "admin");
+        const users: AdminUser[] = data.users ? data.users.filter((u: AdminUser) => u.role !== "admin") : [];
         setAllUsers(users);
         setRecentUsers(users.slice(0, 5));
       }
       if (paymentsRes.ok) {
         const data = await paymentsRes.json();
-        setPayments(data.payments);
-        setStats(prev => ({ ...prev, totalRevenue: data.totalRevenue }));
+        setPayments(data.payments || []);
+        setStats(prev => ({ ...prev, totalRevenue: data.totalRevenue || 0 }));
       }
     } finally {
       setLoading(false);

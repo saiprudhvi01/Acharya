@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as jose from 'jose';
+import { verifyToken } from '@/lib/auth';
 
 export const config = {
   matcher: ['/api/:path*'],
@@ -9,7 +9,7 @@ export const config = {
 export async function middleware(request: NextRequest) {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
-  const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password'];
+  const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/healthz'];
   const isPublicApi = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
   if (isPublicApi) return NextResponse.next();
@@ -20,8 +20,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      const { payload } = await jose.jwtVerify(token, secret);
+      const payload = verifyToken(token);
 
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-user-id', payload.userId as string);
