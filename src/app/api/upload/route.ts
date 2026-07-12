@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', type);
+    // Use /tmp for Render Free tier (files lost on each deployment)
+    const baseDir = process.env.RENDER ? '/tmp' : path.join(process.cwd(), 'public');
+    const uploadDir = path.join(baseDir, 'uploads', type);
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
@@ -70,8 +72,10 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Return the public URL
-    const publicUrl = `/uploads/${type}/${fileName}`;
+    // Return the public URL (note: files in /tmp won't be accessible via public URL in production)
+    const publicUrl = process.env.RENDER 
+      ? `/uploads/${type}/${fileName}` // Files won't be accessible in Render Free tier
+      : `/uploads/${type}/${fileName}`;
 
     return NextResponse.json(
       { 

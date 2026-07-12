@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const dbDir = path.join(process.cwd(), 'data');
+// Use /tmp directory for Render Free tier (data lost on each deployment)
+const dbDir = process.env.RENDER ? '/tmp' : path.join(process.cwd(), 'data');
 const dbPath = path.join(dbDir, 'acharya.db');
 
 // Ensure data directory exists
@@ -250,5 +251,8 @@ export function initDB() {
 
 // Initialize database on import
 initDB();
+
+// Seed database for demo/testing purposes
+import './seed';
 
 export default db;
