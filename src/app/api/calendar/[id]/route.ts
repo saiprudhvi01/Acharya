@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const event = await CalendarEvent.findById(params.id)
       .populate('createdBy', 'name email avatar')
@@ -36,7 +36,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
 
@@ -75,7 +75,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const event = await CalendarEvent.findByIdAndDelete(params.id);
 

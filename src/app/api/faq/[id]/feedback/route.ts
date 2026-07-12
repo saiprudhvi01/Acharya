@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
     const { type } = body; // 'helpful' or 'notHelpful'

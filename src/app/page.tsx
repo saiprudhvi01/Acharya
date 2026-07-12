@@ -42,9 +42,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Background Gradients */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[500px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-[100px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Background Images */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10" 
+             style={{ backgroundImage: 'url(/bgimages/74d93df2-38cf-4960-ab43-a338f9e0db26.jpeg)' }} />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 dark:opacity-8" 
+             style={{ backgroundImage: 'url(/bgimages/e8c3a632-02b6-4bd6-8ef5-6407dde96335.jpeg)' }} />
+      </div>
+
+      {/* Gradient Overlays for better text contrast */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-50/97 via-slate-50/95 to-slate-50/97 dark:from-slate-950/97 dark:via-slate-950/95 dark:to-slate-950/97 pointer-events-none" />
 
       {/* Navbar */}
       <nav className="fixed w-full z-50 top-0 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md">

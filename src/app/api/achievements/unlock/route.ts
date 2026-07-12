@@ -4,7 +4,7 @@ import { UserAchievement, Achievement } from '@/models/Achievement';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
     const { userId, achievementId } = body;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

@@ -4,7 +4,7 @@ import CalendarEvent from '@/models/Calendar';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
 

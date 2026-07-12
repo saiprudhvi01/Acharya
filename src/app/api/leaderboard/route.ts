@@ -6,7 +6,7 @@ import Assignment from '@/models/Assignment';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'all-time'; // week, month, all-time

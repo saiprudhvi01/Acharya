@@ -7,7 +7,7 @@ import User from '@/models/User';
 // GET reviews for a course
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const searchParams = request.nextUrl.searchParams;
     const courseId = searchParams.get('courseId');
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 // POST create review (student only)
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role');

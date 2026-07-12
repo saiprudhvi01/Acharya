@@ -92,7 +92,17 @@ export default function AdminDashboard() {
   const initials = adminUser?.name?.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) ?? "A";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex relative overflow-hidden">
+      {/* Background Images */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10" 
+             style={{ backgroundImage: 'url(/bgimages/e8c3a632-02b6-4bd6-8ef5-6407dde96335.jpeg)' }} />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 dark:opacity-8" 
+             style={{ backgroundImage: 'url(/bgimages/74d93df2-38cf-4960-ab43-a338f9e0db26.jpeg)' }} />
+      </div>
+
+      {/* Gradient Overlay for better contrast */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50/97 via-slate-50/95 to-slate-50/97 dark:from-slate-950/97 dark:via-slate-950/95 dark:to-slate-950/97 pointer-events-none" />
       <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-900 dark:bg-black text-slate-300 flex flex-col fixed h-full z-40 hidden md:flex">
         <div className="p-6 flex items-center gap-2 text-white">
           <ShieldAlert className="text-emerald-500 w-8 h-8" />

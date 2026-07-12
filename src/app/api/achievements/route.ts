@@ -5,7 +5,7 @@ import User from '@/models/User';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
 

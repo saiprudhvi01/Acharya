@@ -34,6 +34,10 @@ export default function TeacherDashboard() {
   const [liveLink, setLiveLink] = useState("");
   const [studentsView, setStudentsView] = useState<{ course: any; students: any[] } | null>(null);
   const [uploadingCert, setUploadingCert] = useState<number | null>(null);
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({ title: "", description: "", courseId: "", scheduledFor: "", duration: "" });
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -59,10 +63,12 @@ export default function TeacherDashboard() {
       fetch(`/api/courses?teacherId=${parsed.id}`, { headers }).then(r => r.json()),
       fetch("/api/teacher/earnings", { headers }).then(r => r.json()),
       fetch("/api/assignments", { headers }).then(r => r.json()),
-    ]).then(([coursesData, earningsData, assignmentsData]) => {
+      fetch("/api/meetings", { headers }).then(r => r.json()),
+    ]).then(([coursesData, earningsData, assignmentsData, meetingsData]) => {
       const courses = coursesData.courses ?? [];
       const payments = earningsData.payments ?? [];
       const assignments = assignmentsData.assignments ?? [];
+      const meetings = meetingsData.meetings ?? [];
 
       const totalStudents = courses.reduce((sum: number, c: any) => sum + (c.enrolledCount ?? 0), 0);
       const activeCourses = courses.filter((c: any) => c.isApproved).length;
@@ -76,11 +82,44 @@ export default function TeacherDashboard() {
       }));
 
       setStats({ totalStudents, activeCourses, pendingAssignments, revenue, recentEnrolments });
+      setMeetings(meetings);
     }).catch(console.error);
   }, [router]);
 
   const handleGenerateLink = () => {
     setMeetingUrl(`https://meet.acharya.edu/class-${Math.random().toString(36).substr(2, 6)}`);
+  };
+
+  const handleCreateMeeting = async () => {
+    if (!meetingForm.title) return;
+
+    setCreatingMeeting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/meetings", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(meetingForm)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMeetings(prev => [data.meeting, ...prev]);
+        setShowMeetingModal(false);
+        setMeetingForm({ title: "", description: "", courseId: "", scheduledFor: "", duration: "" });
+      }
+    } catch (error) {
+      console.error("Error creating meeting:", error);
+    } finally {
+      setCreatingMeeting(false);
+    }
+  };
+
+  const joinMeeting = (roomId: string) => {
+    window.location.href = `/meeting/${roomId}`;
   };
 
   const fetchMaterials = async (courseId: number) => {
@@ -189,170 +228,224 @@ export default function TeacherDashboard() {
 
   return (
     <>
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col fixed h-full z-40 relative hidden md:flex">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
-            <BookPlus className="text-white w-5 h-5" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex relative overflow-hidden">
+        {/* Background Images */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10"
+            style={{ backgroundImage: 'url(/bgimages/74d93df2-38cf-4960-ab43-a338f9e0db26.jpeg)' }} />
+          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 dark:opacity-8"
+            style={{ backgroundImage: 'url(/bgimages/dc90f7b1-d984-4917-8471-2ba50b792e57.jpeg)' }} />
+        </div>
+
+        {/* Gradient Overlay for better contrast */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50/97 via-slate-50/95 to-slate-50/97 dark:from-slate-950/97 dark:via-slate-950/95 dark:to-slate-950/97 pointer-events-none" />
+        {/* Sidebar */}
+        <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col fixed h-full z-40 relative hidden md:flex">
+          <div className="p-6 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
+              <BookPlus className="text-white w-5 h-5" />
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Acharya Educator</span>
           </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Acharya Educator</span>
-        </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {[
-            { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-            { id: "courses", icon: BookPlus, label: "Manage Courses" },
-            { id: "live", icon: Video, label: "Live Classes" },
-            { id: "students", icon: Users, label: "Students" },
-            { id: "messages", icon: MessageSquare, label: "Messages" },
-            { id: "earnings", icon: IndianRupee, label: "Earnings" },
-          ].map((item) => (
+          <nav className="flex-1 px-4 py-6 space-y-2">
+            {[
+              { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+              { id: "courses", icon: BookPlus, label: "Manage Courses" },
+              { id: "live", icon: Video, label: "Live Classes" },
+              { id: "students", icon: Users, label: "Students" },
+              { id: "messages", icon: MessageSquare, label: "Messages" },
+              { id: "earnings", icon: IndianRupee, label: "Earnings" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
+                    ? "bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+              >
+                <item.icon size={20} />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
             <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                activeTab === item.id 
-                  ? "bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium" 
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-              }`}
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
             >
-              <item.icon size={20} />
-              {item.label}
+              <LogOut size={20} />
+              Logout
             </button>
-          ))}
-        </nav>
+          </div>
+        </aside>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <button
-            onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/';
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
-        <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-30">
-          <h1 className="text-xl font-semibold capitalize">{activeTab.replace("-", " ")}</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-              <div className="relative">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
-                  {user?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+          <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-30">
+            <h1 className="text-xl font-semibold capitalize">{activeTab.replace("-", " ")}</h1>
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+                <div className="relative">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
+                    {user?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900" />
                 </div>
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900" />
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-semibold">{user?.name || ""}</p>
-                <p className="text-xs text-purple-500 font-medium">Educator</p>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-semibold">{user?.name || ""}</p>
+                  <p className="text-xs text-purple-500 font-medium">Educator</p>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <div className="p-8 w-full max-w-6xl mx-auto">
-          {activeTab === "dashboard" && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[
-                  { label: "Total Students", value: stats.totalStudents.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-                  { label: "Active Courses", value: stats.activeCourses.toString(), icon: BookPlus, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                  { label: "Pending Assignments", value: stats.pendingAssignments.toString(), icon: CheckCircle2, color: "text-orange-500", bg: "bg-orange-500/10" },
-                  { label: "Revenue", value: `₹${(stats.revenue / 1000).toFixed(1)}K`, icon: IndianRupee, color: "text-purple-500", bg: "bg-purple-500/10" }
-                ].map((stat, i) => (
-                  <div key={i} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${stat.bg} ${stat.color}`}>
-                      <stat.icon size={24} />
+          <div className="p-8 w-full max-w-6xl mx-auto">
+            {activeTab === "dashboard" && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {[
+                    { label: "Total Students", value: stats.totalStudents.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+                    { label: "Active Courses", value: stats.activeCourses.toString(), icon: BookPlus, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                    { label: "Pending Assignments", value: stats.pendingAssignments.toString(), icon: CheckCircle2, color: "text-orange-500", bg: "bg-orange-500/10" },
+                    { label: "Revenue", value: `₹${(stats.revenue / 1000).toFixed(1)}K`, icon: IndianRupee, color: "text-purple-500", bg: "bg-purple-500/10" }
+                  ].map((stat, i) => (
+                    <div key={i} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${stat.bg} ${stat.color}`}>
+                        <stat.icon size={24} />
+                      </div>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">{stat.label}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Recent Activity */}
-                <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-[400px]">
-                  <h3 className="font-bold text-lg mb-6">Recent Enrolments</h3>
-                  <div className="space-y-4">
-                    {stats.recentEnrolments.length === 0 ? (
-                      <p className="text-sm text-slate-400 text-center py-8">No enrolments yet</p>
-                    ) : stats.recentEnrolments.map((enrol, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
-                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
-                             {enrol.userName?.[0]?.toUpperCase() || "?"}
-                           </div>
-                           <div>
-                             <p className="font-medium text-sm">{enrol.userName}</p>
-                             <p className="text-xs text-slate-500">Purchased {enrol.courseTitle}</p>
-                           </div>
-                         </div>
-                         <span className="text-emerald-500 font-medium text-sm">+ ₹{enrol.amount?.toLocaleString()}</span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Recent Activity */}
+                  <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-[400px]">
+                    <h3 className="font-bold text-lg mb-6">Recent Enrolments</h3>
+                    <div className="space-y-4">
+                      {stats.recentEnrolments.length === 0 ? (
+                        <p className="text-sm text-slate-400 text-center py-8">No enrolments yet</p>
+                      ) : stats.recentEnrolments.map((enrol, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
+                              {enrol.userName?.[0]?.toUpperCase() || "?"}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{enrol.userName}</p>
+                              <p className="text-xs text-slate-500">Purchased {enrol.courseTitle}</p>
+                            </div>
+                          </div>
+                          <span className="text-emerald-500 font-medium text-sm">+ ₹{enrol.amount?.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-[400px]">
+                    <h3 className="font-bold text-lg mb-6">Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button onClick={() => setActiveTab("live")} className="aspect-square rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-200/50 flex flex-col items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
+                        <Video className="w-8 h-8 text-purple-600" />
+                        <span className="font-medium text-purple-900 dark:text-purple-300">Start Class</span>
+                      </button>
+                      <button onClick={() => setActiveTab("courses")} className="aspect-square rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-200/50 flex flex-col items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
+                        <Plus className="w-8 h-8 text-emerald-600" />
+                        <span className="font-medium text-emerald-900 dark:text-emerald-300">New Course</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "live" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Live Classes</h2>
+                  <button
+                    onClick={() => setShowMeetingModal(true)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-xl font-medium flex items-center gap-2 hover:bg-purple-700 transition-colors"
+                  >
+                    <Plus size={18} /> Create Meeting
+                  </button>
+                </div>
+
+                {meetings.length === 0 ? (
+                  <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                    <Video className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                    <h3 className="text-xl font-bold mb-2">No meetings yet</h3>
+                    <p className="text-slate-500 mb-6">Create your first video meeting to get started.</p>
+                    <button
+                      onClick={() => setShowMeetingModal(true)}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors"
+                    >
+                      Create Meeting
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {meetings.map((meeting: any) => (
+                      <div key={meeting.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-xl transition-all">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-bold text-lg mb-1">{meeting.title}</h3>
+                            {meeting.courseTitle && (
+                              <p className="text-sm text-slate-500">{meeting.courseTitle}</p>
+                            )}
+                          </div>
+                          <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/40 rounded-xl flex items-center justify-center">
+                            <Video className="text-purple-600 dark:text-purple-400" size={20} />
+                          </div>
+                        </div>
+
+                        {meeting.description && (
+                          <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
+                            {meeting.description}
+                          </p>
+                        )}
+
+                        {meeting.scheduledFor && (
+                          <div className="text-sm text-slate-500 mb-4">
+                            Scheduled: {new Date(meeting.scheduledFor).toLocaleString()}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => joinMeeting(meeting.roomId)}
+                            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors"
+                          >
+                            Join Meeting
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/meeting/${meeting.roomId}`);
+                            }}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </motion.div>
+            )}
 
-                {/* Quick Actions */}
-                <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-[400px]">
-                  <h3 className="font-bold text-lg mb-6">Quick Actions</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setActiveTab("live")} className="aspect-square rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-200/50 flex flex-col items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
-                      <Video className="w-8 h-8 text-purple-600" />
-                      <span className="font-medium text-purple-900 dark:text-purple-300">Start Class</span>
-                    </button>
-                    <button onClick={() => setActiveTab("courses")} className="aspect-square rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-200/50 flex flex-col items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
-                      <Plus className="w-8 h-8 text-emerald-600" />
-                      <span className="font-medium text-emerald-900 dark:text-emerald-300">New Course</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "live" && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto space-y-6">
-                <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
-                  <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                     <Video size={40} />
-                  </div>
-                  <h2 className="text-2xl font-bold mb-2">Host a Live Session</h2>
-                  <p className="text-slate-500 mb-8 max-w-sm mx-auto">Generate a secure meeting link and notify your students instantly.</p>
-                  
-                  {!meetingUrl ? (
-                    <button onClick={handleGenerateLink} className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium flex items-center gap-2 mx-auto transition-colors">
-                      <Link2 size={20} /> Generate Meeting Link
-                    </button>
-                  ) : (
-                    <div className="space-y-4 animate-in fade-in zoom-in w-full max-w-md mx-auto">
-                      <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-between border border-slate-200 dark:border-slate-700">
-                        <span className="font-mono text-sm text-purple-600 dark:text-purple-400 truncate mr-4">{meetingUrl}</span>
-                        <button className="p-2 bg-white dark:bg-slate-700 rounded-lg hover:shadow-md transition-shadow">
-                          <Copy size={16} />
-                        </button>
-                      </div>
-                      <button className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium focus:ring-4 focus:ring-purple-500/20 transition-all shadow-lg shadow-purple-500/20">
-                        Send Notification to Students
-                      </button>
-                    </div>
-                  )}
-                </div>
-             </motion.div>
-          )}
-
-          {activeTab === "courses" && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {activeTab === "courses" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 {!selectedCourse ? (
                   <>
                     <div className="flex items-center justify-between">
@@ -374,9 +467,8 @@ export default function TeacherDashboard() {
                           <div key={i} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
                             <div className="flex items-start justify-between mb-2">
                               <h3 className="font-bold text-lg">{course.title}</h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                course.isApproved ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${course.isApproved ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
                                 {course.isApproved ? 'Active' : 'Pending'}
                               </span>
                             </div>
@@ -408,52 +500,63 @@ export default function TeacherDashboard() {
                       </div>
                     </div>
 
-                    {/* Upload section based on skill level */}
+                    {/* Upload section */}
                     <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <h3 className="font-bold text-lg mb-2">
-                        {selectedCourse.skillLevel === 'beginner' && '📄 Upload PDF Materials'}
-                        {selectedCourse.skillLevel === 'intermediate' && '🎥 Upload Video Lessons'}
-                        {selectedCourse.skillLevel === 'advanced' && '🔴 Add Live Class Link'}
-                      </h3>
+                      <h3 className="font-bold text-lg mb-2">Upload Course Materials</h3>
                       <p className="text-sm text-slate-500 mb-6">
-                        {selectedCourse.skillLevel === 'beginner' && 'Upload PDF study materials for your students.'}
-                        {selectedCourse.skillLevel === 'intermediate' && 'Upload video lessons (MP4, WebM) for your students.'}
-                        {selectedCourse.skillLevel === 'advanced' && 'Add a live class meeting link for your students.'}
+                        Provide PDFs, videos, and live class links for all learning tiers.
                       </p>
 
-                      {selectedCourse.skillLevel !== 'advanced' ? (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Material Title</label>
+                      <div className="space-y-6">
+                        <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                          <h4 className="font-medium text-sm mb-4">📄 Add PDF Material</h4>
+                          <div className="space-y-4">
                             <input
                               type="text"
                               value={materialTitle}
                               onChange={e => setMaterialTitle(e.target.value)}
-                              placeholder={selectedCourse.skillLevel === 'beginner' ? 'e.g. Chapter 1 Notes' : 'e.g. Lesson 1 - Introduction'}
+                              placeholder="e.g. Chapter 1 Notes"
                               className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              {selectedCourse.skillLevel === 'beginner' ? 'Select PDF' : 'Select Video'}
-                            </label>
                             <input
                               type="file"
-                              accept={selectedCourse.skillLevel === 'beginner' ? '.pdf' : 'video/*'}
+                              accept=".pdf"
                               disabled={uploadingMaterial}
                               onChange={e => {
                                 const file = e.target.files?.[0];
-                                if (file) handleUploadMaterial(file, selectedCourse.skillLevel === 'beginner' ? 'pdf' : 'video');
+                                if (file) handleUploadMaterial(file, 'pdf');
                               }}
                               className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
                             />
                           </div>
-                          {uploadingMaterial && <p className="text-sm text-purple-500">Uploading...</p>}
                         </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Live Class Link (Google Meet / Zoom)</label>
+
+                        <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                          <h4 className="font-medium text-sm mb-4">🎥 Add Video Lesson</h4>
+                          <div className="space-y-4">
+                            <input
+                              type="text"
+                              value={materialTitle}
+                              onChange={e => setMaterialTitle(e.target.value)}
+                              placeholder="e.g. Lesson 1 - Intro"
+                              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                            <input
+                              type="file"
+                              accept="video/*"
+                              disabled={uploadingMaterial}
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadMaterial(file, 'video');
+                              }}
+                              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                          <h4 className="font-medium text-sm mb-4">🔴 Add Live Class Link</h4>
+                          <div className="space-y-4">
                             <input
                               type="url"
                               value={liveLink}
@@ -461,12 +564,14 @@ export default function TeacherDashboard() {
                               placeholder="https://meet.google.com/..."
                               className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
+                            <button onClick={handleSaveLiveLink} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors">
+                              Save Live Link
+                            </button>
                           </div>
-                          <button onClick={handleSaveLiveLink} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors">
-                            Save Live Link
-                          </button>
                         </div>
-                      )}
+                      </div>
+
+                      {uploadingMaterial && <p className="text-sm text-purple-500 mt-4">Uploading...</p>}
                     </div>
 
                     {/* Existing materials */}
@@ -498,98 +603,97 @@ export default function TeacherDashboard() {
                     )}
                   </>
                 )}
-             </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {activeTab === "students" && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-               {!studentsView ? (
-                 <>
-                   <h2 className="text-2xl font-bold">Students by Course</h2>
-                   {myCourses.length === 0 ? (
-                     <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                       <Users className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-                       <p className="text-slate-500">No courses yet. Create a course first.</p>
-                     </div>
-                   ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       {myCourses.map((course, i) => (
-                         <div key={i} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
-                           <h3 className="font-bold text-lg mb-1">{course.title}</h3>
-                           <p className="text-sm text-slate-500 capitalize mb-4">{course.skillLevel} level</p>
-                           <div className="flex items-center justify-between">
-                             <span className="flex items-center gap-1 text-sm text-slate-500"><Users size={16} /> {course.enrolledStudents ?? 0} students</span>
-                             <button onClick={() => fetchStudents(course)} className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
-                               View Students
-                             </button>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </>
-               ) : (
-                 <>
-                   <div className="flex items-center gap-3">
-                     <button onClick={() => setStudentsView(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm font-medium">← Back</button>
-                     <div>
-                       <h2 className="text-2xl font-bold">{studentsView.course.title}</h2>
-                       <p className="text-sm text-slate-500">{studentsView.students.length} enrolled students</p>
-                     </div>
-                   </div>
-                   {studentsView.students.length === 0 ? (
-                     <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                       <Users className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-                       <p className="text-slate-500">No students enrolled yet.</p>
-                     </div>
-                   ) : (
-                     <div className="space-y-4">
-                       {studentsView.students.map((student, i) => (
-                         <div key={i} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-                           <div className="flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 font-bold text-sm">
-                               {student.name?.[0]?.toUpperCase()}
-                             </div>
-                             <div>
-                               <p className="font-semibold">{student.name}</p>
-                               <p className="text-xs text-slate-500">{student.email}</p>
-                             </div>
-                           </div>
-                           <div className="flex items-center gap-3">
-                             {student.certificateUrl ? (
-                               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">✅ Certificate Issued</span>
-                             ) : (
-                               <span className="text-xs text-slate-400">No certificate</span>
-                             )}
-                             <label className={`px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${
-                               uploadingCert === student.id
-                                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                                 : 'bg-purple-600 text-white hover:bg-purple-700'
-                             }`}>
-                               {uploadingCert === student.id ? 'Uploading...' : student.certificateUrl ? 'Replace Certificate' : 'Upload Certificate'}
-                               <input
-                                 type="file"
-                                 accept=".pdf,image/*"
-                                 className="hidden"
-                                 disabled={uploadingCert === student.id}
-                                 onChange={e => {
-                                   const file = e.target.files?.[0];
-                                   if (file) handleUploadCertificate(student.id, file);
-                                 }}
-                               />
-                             </label>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </>
-               )}
-             </motion.div>
-          )}
+            {activeTab === "students" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                {!studentsView ? (
+                  <>
+                    <h2 className="text-2xl font-bold">Students by Course</h2>
+                    {myCourses.length === 0 ? (
+                      <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                        <Users className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                        <p className="text-slate-500">No courses yet. Create a course first.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {myCourses.map((course, i) => (
+                          <div key={i} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
+                            <h3 className="font-bold text-lg mb-1">{course.title}</h3>
+                            <p className="text-sm text-slate-500 capitalize mb-4">{course.skillLevel} level</p>
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1 text-sm text-slate-500"><Users size={16} /> {course.enrolledStudents ?? 0} students</span>
+                              <button onClick={() => fetchStudents(course)} className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
+                                View Students
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setStudentsView(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm font-medium">← Back</button>
+                      <div>
+                        <h2 className="text-2xl font-bold">{studentsView.course.title}</h2>
+                        <p className="text-sm text-slate-500">{studentsView.students.length} enrolled students</p>
+                      </div>
+                    </div>
+                    {studentsView.students.length === 0 ? (
+                      <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                        <Users className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                        <p className="text-slate-500">No students enrolled yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {studentsView.students.map((student, i) => (
+                          <div key={i} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 font-bold text-sm">
+                                {student.name?.[0]?.toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold">{student.name}</p>
+                                <p className="text-xs text-slate-500">{student.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {student.certificateUrl ? (
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">✅ Certificate Issued</span>
+                              ) : (
+                                <span className="text-xs text-slate-400">No certificate</span>
+                              )}
+                              <label className={`px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${uploadingCert === student.id
+                                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`}>
+                                {uploadingCert === student.id ? 'Uploading...' : student.certificateUrl ? 'Replace Certificate' : 'Upload Certificate'}
+                                <input
+                                  type="file"
+                                  accept=".pdf,image/*"
+                                  className="hidden"
+                                  disabled={uploadingCert === student.id}
+                                  onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleUploadCertificate(student.id, file);
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            )}
 
-          {activeTab === "messages" && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {activeTab === "messages" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <h2 className="text-2xl font-bold">Messages</h2>
                 <div className="space-y-4">
                   {[
@@ -610,11 +714,11 @@ export default function TeacherDashboard() {
                     </div>
                   ))}
                 </div>
-             </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {activeTab === "earnings" && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {activeTab === "earnings" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-medium text-emerald-50 mb-1">Total Earnings</h2>
@@ -644,7 +748,7 @@ export default function TeacherDashboard() {
                           <tr key={i} className="text-sm hover:bg-slate-50 dark:hover:bg-slate-800/20">
                             <td className="p-4 text-slate-500">Oct {10 + i}, 2024</td>
                             <td className="p-4 font-medium">Advanced Web Development</td>
-                            <td className="p-4 text-slate-600 dark:text-slate-400">Student {i+1}</td>
+                            <td className="p-4 text-slate-600 dark:text-slate-400">Student {i + 1}</td>
                             <td className="p-4 font-medium text-emerald-600">+ ₹2,500</td>
                             <td className="p-4">
                               <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full text-xs font-bold uppercase tracking-wider">
@@ -657,11 +761,11 @@ export default function TeacherDashboard() {
                     </table>
                   </div>
                 </div>
-             </motion.div>
-          )}
-        </div>
-      </main>
-    </div>
+              </motion.div>
+            )}
+          </div>
+        </main>
+      </div>
 
       {/* Create Course Modal */}
       {showCreateModal && (
@@ -713,6 +817,84 @@ export default function TeacherDashboard() {
               <button onClick={() => { setShowCreateModal(false); setCreateError(""); }} className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
               <button onClick={handleCreateCourse} disabled={creating} className="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors disabled:opacity-50">
                 {creating ? "Creating..." : "Create Course"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Meeting Modal */}
+      {showMeetingModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-lg shadow-2xl">
+            <h2 className="text-2xl font-bold mb-6">Create Meeting</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Meeting Title</label>
+                <input
+                  type="text"
+                  value={meetingForm.title}
+                  onChange={e => setMeetingForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="e.g., Advanced React Workshop"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                <textarea
+                  rows={3}
+                  value={meetingForm.description}
+                  onChange={e => setMeetingForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  placeholder="What will this meeting cover?"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Course (Optional)</label>
+                <select
+                  value={meetingForm.courseId}
+                  onChange={e => setMeetingForm(f => ({ ...f, courseId: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Select a course</option>
+                  {myCourses.map((course: any) => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Scheduled For (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={meetingForm.scheduledFor}
+                  onChange={e => setMeetingForm(f => ({ ...f, scheduledFor: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Duration (minutes, Optional)</label>
+                <input
+                  type="number"
+                  value={meetingForm.duration}
+                  onChange={e => setMeetingForm(f => ({ ...f, duration: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="e.g., 60"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowMeetingModal(false)}
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateMeeting}
+                disabled={creatingMeeting || !meetingForm.title}
+                className="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {creatingMeeting ? "Creating..." : "Create Meeting"}
               </button>
             </div>
           </div>

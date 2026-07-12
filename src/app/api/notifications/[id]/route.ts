@@ -7,7 +7,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const notification = await Notification.findByIdAndUpdate(
       params.id,
@@ -40,7 +40,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    
 
     const notification = await Notification.findByIdAndDelete(params.id);
 

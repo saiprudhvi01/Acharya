@@ -169,6 +169,7 @@ export function initDB() {
     CREATE TABLE IF NOT EXISTS user_enrollments (
       userId INTEGER NOT NULL,
       courseId INTEGER NOT NULL,
+      plan TEXT DEFAULT 'basic',
       enrolledAt TEXT DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (userId, courseId),
       FOREIGN KEY (userId) REFERENCES users(id),
@@ -224,6 +225,24 @@ export function initDB() {
       issuedAt TEXT DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(studentId, courseId),
       FOREIGN KEY (studentId) REFERENCES users(id),
+      FOREIGN KEY (courseId) REFERENCES courses(id)
+    )
+  `);
+
+  // Meetings table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meetings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      roomId TEXT NOT NULL UNIQUE,
+      teacherId INTEGER NOT NULL,
+      courseId INTEGER,
+      title TEXT NOT NULL,
+      description TEXT,
+      scheduledFor TEXT,
+      duration INTEGER,
+      status TEXT DEFAULT 'scheduled',
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (teacherId) REFERENCES users(id),
       FOREIGN KEY (courseId) REFERENCES courses(id)
     )
   `);

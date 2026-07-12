@@ -4,7 +4,7 @@ import { FAQ } from '@/models/FAQ';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    
 
     const body = await request.json();
 

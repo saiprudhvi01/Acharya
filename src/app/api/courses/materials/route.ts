@@ -21,7 +21,22 @@ export async function GET(request: NextRequest) {
     if (!enrollment) return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 });
   }
 
-  const materials = db.prepare('SELECT * FROM course_materials WHERE courseId = ? ORDER BY createdAt ASC').all(courseId);
+  const allMaterials = db.prepare('SELECT * FROM course_materials WHERE courseId = ? ORDER BY createdAt ASC').all(courseId);
+  let materials = allMaterials;
+
+  // Filter based on enrollment plan
+  if (userRole !== 'teacher') {
+    const enrollment = db.prepare('SELECT * FROM user_enrollments WHERE userId = ? AND courseId = ?').get(userId, courseId) as { plan: string };
+
+    materials = allMaterials.filter((m: any) => {
+      const plan = enrollment?.plan || 'basic';
+      if (plan === 'basic') return m.type === 'pdf';
+      if (plan === 'intermediate') return m.type === 'pdf' || m.type === 'video';
+      // advanced gets everything (pdf, video, live)
+      return true;
+    });
+  }
+
   return NextResponse.json({ materials }, { status: 200 });
 }
 
