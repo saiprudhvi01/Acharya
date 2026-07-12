@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getAllowedMaterialTypesForCourseLevel, getMaterialAccessPlanFromSubscription, isMaterialAllowedForCourseAndPlan } from '@/lib/courseAccess';
 
 // GET materials for a course (enrolled students + teacher)
 export async function GET(request: NextRequest) {
@@ -24,17 +25,18 @@ export async function GET(request: NextRequest) {
   const allMaterials = db.prepare('SELECT * FROM course_materials WHERE courseId = ? ORDER BY createdAt ASC').all(courseId);
   let materials = allMaterials;
 
-  // Filter based on enrollment plan
+  // Filter based on enrollment plan and course level
   if (userRole !== 'teacher') {
-    const enrollment = db.prepare('SELECT * FROM user_enrollments WHERE userId = ? AND courseId = ?').get(userId, courseId) as { plan: string };
+    const enrollment = db.prepare('SELECT * FROM user_enrollments WHERE userId = ? AND courseId = ?').get(userId, courseId) as { plan?: string } | undefined;
+    const course = db.prepare('SELECT skillLevel FROM courses WHERE id = ?').get(courseId) as { skillLevel?: string } | undefined;
+    const user = db.prepare('SELECT subscriptionPlan, subscriptionIsActive FROM users WHERE id = ?').get(userId) as { subscriptionPlan?: string; subscriptionIsActive?: number } | undefined;
+    const coursePlan = enrollment?.plan || 'basic';
+    const subscriptionPlan = getMaterialAccessPlanFromSubscription(user?.subscriptionPlan, user?.subscriptionIsActive);
+    const plan = coursePlan === 'basic' && subscriptionPlan !== 'basic' ? subscriptionPlan : coursePlan;
 
-    materials = allMaterials.filter((m: any) => {
-      const plan = enrollment?.plan || 'basic';
-      if (plan === 'basic') return m.type === 'pdf';
-      if (plan === 'intermediate') return m.type === 'pdf' || m.type === 'video';
-      // advanced gets everything (pdf, video, live)
-      return true;
-    });
+    materials = allMaterials.filter((m: any) =>
+      isMaterialAllowedForCourseAndPlan(m.type, course?.skillLevel, plan)
+    );
   }
 
   return NextResponse.json({ materials }, { status: 200 });
@@ -56,8 +58,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
   }
 
-  const course = db.prepare('SELECT id FROM courses WHERE id = ? AND teacherId = ?').get(courseId, userId);
+  const course = db.prepare('SELECT id, skillLevel FROM courses WHERE id = ? AND teacherId = ?').get(courseId, userId) as { id: number; skillLevel?: string } | undefined;
   if (!course) return NextResponse.json({ error: 'Course not found or unauthorized' }, { status: 403 });
+
+  const allowedTypes = getAllowedMaterialTypesForCourseLevel(course.skillLevel);
+  if (!allowedTypes.includes(type as any)) {
+    return NextResponse.json({ error: `This course level only allows ${allowedTypes.join(', ')} materials` }, { status: 400 });
+  }
 
   const result = db.prepare(
     'INSERT INTO course_materials (courseId, title, type, url) VALUES (?, ?, ?, ?)'

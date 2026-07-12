@@ -2,6 +2,9 @@
   "name": "acharya",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
   "scripts": {
     "dev": "node socket-server.js",
     "dev:socket": "node socket-server.js",

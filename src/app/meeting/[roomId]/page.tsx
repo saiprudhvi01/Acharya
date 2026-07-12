@@ -49,13 +49,6 @@ export default function MeetingPage() {
     setUserName(user.name);
     setUserRole(user.role);
 
-    // Check if user has advanced subscription (for students)
-    if (user.role === "student" && user.subscriptionPlan !== "premium") {
-      alert("This feature requires a Premium subscription");
-      router.push("/student");
-      return;
-    }
-
     // Connect to Socket.IO server
     const socketInstance = io("http://localhost:3000");
     setSocket(socketInstance);

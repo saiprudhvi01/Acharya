@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Award, Bell, Book, Calendar, CheckCircle2, CreditCard, GraduationCap, LayoutDashboard, LogOut, PlayCircle, Star, TrendingUp, User } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import RazorpayButton from "@/components/RazorpayButton";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -60,7 +59,6 @@ function CertificatesTab({ token, onBrowse }: { token: string | null; onBrowse: 
 export default function StudentDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [hasSub, setHasSub] = useState(false);
   const [user, setUser] = useState<{ id: number; name: string; email: string } | null>(null);
   const [courses, setCourses] = useState<any[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
@@ -130,7 +128,7 @@ export default function StudentDashboard() {
     setPaymentDone(false);
   };
 
-  const handlePayAndEnroll = async () => {
+  const handleEnrollCourse = async () => {
     if (!payingCourse) return;
     setEnrolling(payingCourse.id);
     try {
@@ -200,7 +198,6 @@ export default function StudentDashboard() {
               { id: "schedule", icon: Calendar, label: "Live Classes" },
               { id: "progress", icon: TrendingUp, label: "Progress" },
               { id: "certificates", icon: Award, label: "Certificates" },
-              { id: "subscription", icon: CreditCard, label: "Subscription" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -369,44 +366,6 @@ export default function StudentDashboard() {
               </motion.div>
             )}
 
-            {activeTab === "subscription" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-8">
-                <div className="text-center space-y-2">
-                  <h2 className="text-3xl font-bold">Choose Your Journey</h2>
-                  <p className="text-slate-500 flex justify-center">Unlock unlimited learning with our premium subscriptions.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
-                  {[
-                    { name: "Basic", price: 1000, duration: "1 Month", features: ["Access to Basic courses", "Community support", "Standard certificates"] },
-                    { name: "Standard", price: 2000, duration: "2 Months", features: ["Access to Standard courses", "Live Q&A support", "Verified certificates", "Downloadable resources"], featured: true },
-                    { name: "Premium", price: 10000, duration: "1 Year", features: ["Access to ALL courses", "1-on-1 mentorship", "Premium certificates", "Job assistance", "Offline mode"] }
-                  ].map((plan, i) => (
-                    <div key={i} className={`relative p-8 rounded-3xl border bg-white dark:bg-slate-900 flex flex-col ${plan.featured ? 'border-indigo-500 shadow-xl shadow-indigo-500/10 scale-105 z-10' : 'border-slate-200 dark:border-slate-800'}`}>
-                      {plan.featured && (
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-                          Most Popular
-                        </div>
-                      )}
-                      <h3 className="text-xl font-bold">{plan.name}</h3>
-                      <div className="mt-4 mb-6 flex items-baseline gap-2">
-                        <span className="text-4xl font-extrabold">₹{plan.price}</span>
-                        <span className="text-slate-500">/ {plan.duration}</span>
-                      </div>
-                      <ul className="space-y-3 mb-8 flex-1">
-                        {plan.features.map((f, j) => (
-                          <li key={j} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                            <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" /> {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <RazorpayButton amount={plan.price} onSuccess={() => setHasSub(true)} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
             {activeTab === "courses" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 {!selectedCourse ? (
@@ -568,13 +527,13 @@ export default function StudentDashboard() {
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="text-emerald-500" size={32} />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Payment Successful!</h3>
+                <h3 className="text-xl font-bold mb-2">Enrollment Successful!</h3>
                 <p className="text-slate-500">You are now enrolled in <span className="font-semibold text-indigo-600">{payingCourse.title}</span></p>
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-bold mb-1">Complete Payment</h2>
-                <p className="text-slate-500 text-sm mb-6">Choose your learning tier for:</p>
+                <h2 className="text-2xl font-bold mb-1">Choose Your Learning Tier</h2>
+                <p className="text-slate-500 text-sm mb-6">Select the plan that fits your course access:</p>
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 mb-6">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-3xl">📘</span>
@@ -603,15 +562,12 @@ export default function StudentDashboard() {
                 </div>
                 <div className="space-y-3">
                   <button
-                    onClick={handlePayAndEnroll}
+                    onClick={handleEnrollCourse}
                     disabled={enrolling === payingCourse.id}
                     className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     <CreditCard size={18} />
-                    {enrolling === payingCourse.id ? 'Processing...' : `Pay ₹${selectedPlan === 'basic' ? payingCourse.price :
-                        selectedPlan === 'intermediate' ? payingCourse.price * 2 :
-                          payingCourse.price * 3
-                      } & Enroll`}
+                    {enrolling === payingCourse.id ? 'Enrolling...' : `Enroll with ${selectedPlan === 'basic' ? 'Basic' : selectedPlan === 'intermediate' ? 'Intermediate' : 'Advanced'} Plan`}
                   </button>
                   <button
                     onClick={() => setPayingCourse(null)}

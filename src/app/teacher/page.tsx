@@ -5,6 +5,7 @@ import { BookPlus, CheckCircle2, Copy, IndianRupee, LayoutDashboard, Link2, LogO
 import ThemeToggle from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getAllowedMaterialTypesForCourseLevel } from "@/lib/courseAccess";
 
 interface DashboardStats {
   totalStudents: number;
@@ -504,7 +505,11 @@ export default function TeacherDashboard() {
                     <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <h3 className="font-bold text-lg mb-2">Upload Course Materials</h3>
                       <p className="text-sm text-slate-500 mb-6">
-                        Provide PDFs, videos, and live class links for all learning tiers.
+                        {selectedCourse.skillLevel === 'beginner'
+                          ? 'Beginner courses can only publish PDF materials.'
+                          : selectedCourse.skillLevel === 'intermediate'
+                            ? 'Intermediate courses can publish PDFs and videos.'
+                            : 'Advanced courses can publish PDFs, videos, and live class links.'}
                       </p>
 
                       <div className="space-y-6">
@@ -531,44 +536,48 @@ export default function TeacherDashboard() {
                           </div>
                         </div>
 
-                        <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                          <h4 className="font-medium text-sm mb-4">🎥 Add Video Lesson</h4>
-                          <div className="space-y-4">
-                            <input
-                              type="text"
-                              value={materialTitle}
-                              onChange={e => setMaterialTitle(e.target.value)}
-                              placeholder="e.g. Lesson 1 - Intro"
-                              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                            <input
-                              type="file"
-                              accept="video/*"
-                              disabled={uploadingMaterial}
-                              onChange={e => {
-                                const file = e.target.files?.[0];
-                                if (file) handleUploadMaterial(file, 'video');
-                              }}
-                              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
-                            />
+                        {getAllowedMaterialTypesForCourseLevel(selectedCourse?.skillLevel).includes('video') && (
+                          <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <h4 className="font-medium text-sm mb-4">🎥 Add Video Lesson</h4>
+                            <div className="space-y-4">
+                              <input
+                                type="text"
+                                value={materialTitle}
+                                onChange={e => setMaterialTitle(e.target.value)}
+                                placeholder="e.g. Lesson 1 - Intro"
+                                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              />
+                              <input
+                                type="file"
+                                accept="video/*"
+                                disabled={uploadingMaterial}
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadMaterial(file, 'video');
+                                }}
+                                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                          <h4 className="font-medium text-sm mb-4">🔴 Add Live Class Link</h4>
-                          <div className="space-y-4">
-                            <input
-                              type="url"
-                              value={liveLink}
-                              onChange={e => setLiveLink(e.target.value)}
-                              placeholder="https://meet.google.com/..."
-                              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                            <button onClick={handleSaveLiveLink} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors">
-                              Save Live Link
-                            </button>
+                        {getAllowedMaterialTypesForCourseLevel(selectedCourse?.skillLevel).includes('live') && (
+                          <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <h4 className="font-medium text-sm mb-4">🔴 Add Live Class Link</h4>
+                            <div className="space-y-4">
+                              <input
+                                type="url"
+                                value={liveLink}
+                                onChange={e => setLiveLink(e.target.value)}
+                                placeholder="https://meet.google.com/..."
+                                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              />
+                              <button onClick={handleSaveLiveLink} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors">
+                                Save Live Link
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {uploadingMaterial && <p className="text-sm text-purple-500 mt-4">Uploading...</p>}
