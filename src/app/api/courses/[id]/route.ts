@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET single course
 export async function GET(
@@ -39,15 +40,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const teacherId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!teacherId || userRole !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only teachers can update courses.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['teacher']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const teacherId = auth.userId;
 
     const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(params.id) as any;
 
@@ -144,15 +143,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const teacherId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!teacherId || userRole !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only teachers can delete courses.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['teacher']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const teacherId = auth.userId;
 
     const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(params.id) as any;
 

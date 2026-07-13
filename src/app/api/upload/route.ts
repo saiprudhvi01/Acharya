@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import { requireAuth } from '@/lib/authMiddleware';
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User authentication required' },
-        { status: 401 }
-      );
+    const auth = requireAuth(request);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;

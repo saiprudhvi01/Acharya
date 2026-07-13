@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getAllowedMaterialTypesForCourseLevel, getMaterialAccessPlanFromSubscription, isMaterialAllowedForCourseAndPlan } from '@/lib/courseAccess';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET materials for a course (enrolled students + teacher)
 export async function GET(request: NextRequest) {
-  const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
+  const auth = requireAuth(request);
+  
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const userId = auth.userId;
+  const userRole = auth.role;
   const courseId = request.nextUrl.searchParams.get('courseId');
 
-  if (!userId || !courseId) {
+  if (!courseId) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
@@ -44,12 +51,13 @@ export async function GET(request: NextRequest) {
 
 // POST add material to a course (teacher only)
 export async function POST(request: NextRequest) {
-  const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
-
-  if (!userId || userRole !== 'teacher') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const auth = requireAuth(request, ['teacher']);
+  
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+
+  const userId = auth.userId;
 
   const body = await request.json();
   const { courseId, title, type, url } = body;
@@ -76,12 +84,17 @@ export async function POST(request: NextRequest) {
 
 // DELETE material (teacher only)
 export async function DELETE(request: NextRequest) {
-  const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
+  const auth = requireAuth(request, ['teacher']);
+  
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const userId = auth.userId;
   const materialId = request.nextUrl.searchParams.get('materialId');
 
-  if (!userId || userRole !== 'teacher' || !materialId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  if (!materialId) {
+    return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
   const material = db.prepare(`
