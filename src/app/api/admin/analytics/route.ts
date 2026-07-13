@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 export async function GET(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-role');
-
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['admin']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const searchParams = request.nextUrl.searchParams;

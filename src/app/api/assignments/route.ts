@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET assignments
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User authentication required' },
-        { status: 401 }
-      );
+    const auth = requireAuth(request);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
+    const userRole = auth.role;
 
     const searchParams = request.nextUrl.searchParams;
     const courseId = searchParams.get('courseId');
@@ -54,15 +54,13 @@ export async function GET(request: NextRequest) {
 // POST create assignment (teacher only)
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!userId || userRole !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only teachers can create assignments.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['teacher']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     const body = await request.json();
     const { course, title, description, dueDate, maxMarks, attachments } = body;

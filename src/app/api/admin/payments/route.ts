@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 export async function GET(request: NextRequest) {
-  if (request.headers.get('x-user-role') !== 'admin') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const auth = requireAuth(request, ['admin']);
+  
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const payments = db.prepare(`

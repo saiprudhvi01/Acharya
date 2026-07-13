@@ -252,7 +252,9 @@ export function initDB() {
 // Initialize database on import
 initDB();
 
-// Seed database for demo/testing purposes
-import './seed';
+// Seed database for demo/testing purposes (only in development or if explicitly needed)
+if (process.env.NODE_ENV !== 'production') {
+  import('./seed').catch(err => console.error('Failed to seed database:', err));
+}
 
 export default db;

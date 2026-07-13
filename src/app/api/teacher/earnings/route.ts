@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET teacher earnings
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!userId || userRole !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Teacher access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['teacher']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     // Get all courses taught by this teacher
     const courses = db.prepare('SELECT id, price FROM courses WHERE teacherId = ?').all(userId) as any[];

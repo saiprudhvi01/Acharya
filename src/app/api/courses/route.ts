@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET all courses (public)
 export async function GET(request: NextRequest) {
@@ -54,15 +55,13 @@ export async function GET(request: NextRequest) {
 // POST create course (teacher only)
 export async function POST(request: NextRequest) {
   try {
-    const teacherId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!teacherId || userRole !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only teachers can create courses.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['teacher']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const teacherId = auth.userId;
 
     const body = await request.json();
     const {

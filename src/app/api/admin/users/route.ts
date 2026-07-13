@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET all users (admin only)
 export async function GET(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-role');
-
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['admin']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -47,13 +45,10 @@ export async function GET(request: NextRequest) {
 // PUT update user (admin only)
 export async function PUT(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-role');
-
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['admin']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const body = await request.json();
@@ -114,13 +109,10 @@ export async function PUT(request: NextRequest) {
 // DELETE user (admin only)
 export async function DELETE(request: NextRequest) {
   try {
-    const userRole = request.headers.get('x-user-role');
-
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['admin']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -143,7 +135,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Prevent admin from deleting themselves
-    const currentUserId = request.headers.get('x-user-id');
+    const currentUserId = auth.userId;
     if (userId === currentUserId) {
       return NextResponse.json(
         { error: 'You cannot delete your own account' },
