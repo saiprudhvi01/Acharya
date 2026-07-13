@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 export async function POST(request: NextRequest) {
-  const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
-
-  if (!userId || userRole !== 'student') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const auth = requireAuth(request, ['student']);
+  
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+
+  const userId = auth.userId;
 
   const { courseId, plan = 'basic' } = await request.json();
   if (!courseId) return NextResponse.json({ error: 'courseId required' }, { status: 400 });

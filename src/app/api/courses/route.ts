@@ -83,6 +83,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify teacher exists
+    const teacher = db.prepare('SELECT id FROM users WHERE id = ? AND role = ?').get(teacherId, 'teacher');
+    if (!teacher) {
+      return NextResponse.json(
+        { error: 'Teacher not found or invalid teacher ID' },
+        { status: 404 }
+      );
+    }
+
     // Create course
     const result = db.prepare(`
       INSERT INTO courses (title, description, teacherId, category, subject, duration, price, skillLevel, thumbnail, isApproved)

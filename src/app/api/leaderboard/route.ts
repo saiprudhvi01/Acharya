@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { UserAchievement } from '@/models/Achievement';
-import User from '@/models/User';
-import Assignment from '@/models/Assignment';
+import db from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    
-
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const period = searchParams.get('period') || 'all-time'; // week, month, all-time
 
     // Calculate start date based on period
@@ -21,46 +18,24 @@ export async function GET(request: NextRequest) {
       startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    // Get user points from achievements
-    const userAchievements = await UserAchievement.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate },
-        },
-      },
-      {
-        $group: {
-          _id: '$userId',
-          totalPoints: {
-            $sum: {
-              $cond: [{ $eq: ['$achievementId', null] }, 0, 10],
-            },
-          },
-          achievementCount: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { totalPoints: -1 },
-      },
-      {
-        $limit: 100,
-      },
-    ]);
+    const startDateStr = startDate.toISOString();
 
-    // Enrich with user data
-    const leaderboard = await Promise.all(
-      userAchievements.map(async (item) => {
-        const user = await User.findById(item._id).select('name email avatar');
-        return {
-          userId: item._id,
-          name: user?.name || 'Unknown',
-          email: user?.email,
-          avatar: user?.avatar,
-          points: item.totalPoints,
-          achievements: item.achievementCount,
-        };
-      })
-    );
+    // Get leaderboard from achievements table
+    const leaderboard = db.prepare(`
+      SELECT 
+        u.id as userId,
+        u.name,
+        u.email,
+        u.avatar,
+        COUNT(a.id) as achievementCount,
+        COUNT(a.id) * 10 as totalPoints
+      FROM users u
+      LEFT JOIN achievements a ON u.id = a.userId AND a.createdAt >= ?
+      WHERE u.role = 'student'
+      GROUP BY u.id
+      ORDER BY totalPoints DESC
+      LIMIT 100
+    `).all(startDateStr) as any[];
 
     return NextResponse.json(leaderboard);
   } catch (error) {
