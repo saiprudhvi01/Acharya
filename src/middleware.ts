@@ -3,6 +3,7 @@ import { verifyToken } from '@/lib/auth';
 
 export const config = {
   matcher: ['/api/:path*'],
+  runtime: 'nodejs',
 };
 
 export async function middleware(request: NextRequest) {
