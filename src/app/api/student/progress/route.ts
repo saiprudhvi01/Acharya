@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!userId || userRole !== 'student') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Student access required.' },
-        { status: 403 }
-      );
+    const auth = requireAuth(request, ['student']);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     // Get enrolled courses
     const enrolledCourses = db.prepare(`

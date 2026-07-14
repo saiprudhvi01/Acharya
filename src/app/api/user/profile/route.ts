@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import db from '@/lib/db';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // GET user profile
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User authentication required' },
-        { status: 401 }
-      );
+    const auth = requireAuth(request);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     const user = db.prepare('SELECT id, name, email, role, avatar, phone, bio, subjects, isVerified, isBlocked, isSuspended, subscriptionPlan, subscriptionStartDate, subscriptionEndDate, subscriptionIsActive, createdAt, updatedAt FROM users WHERE id = ?').get(userId) as any;
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get enrolled courses
     const enrolledCourses = db.prepare(`
-      SELECT c.id, c.title, c.description, c.thumbnail, c.teacherId, u.name as teacherName
+      SELECT c.id, c.title, c.description, c.thumbnail, c.teacherId, c.skillLevel, u.name as teacherName
       FROM user_enrollments ue
       JOIN courses c ON ue.courseId = c.id
       JOIN users u ON c.teacherId = u.id
@@ -45,14 +45,13 @@ export async function GET(request: NextRequest) {
 // PUT update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User authentication required' },
-        { status: 401 }
-      );
+    const auth = requireAuth(request);
+    
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const userId = auth.userId;
 
     const body = await request.json();
     const { name, email, phone, bio, avatar, currentPassword, newPassword } = body;

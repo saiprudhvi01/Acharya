@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Award, Bell, Book, Calendar, CheckCircle2, CreditCard, GraduationCap, LayoutDashboard, LogOut, PlayCircle, Star, TrendingUp, User } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import ChromaGrid from "@/components/ChromaGrid";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -321,46 +322,33 @@ export default function StudentDashboard() {
                     <p className="text-slate-500">Check back once teachers publish their courses.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {courses.map((course, i) => {
-                      const isEnrolled = enrolledCourses.some((e: any) => e.id === course.id);
-                      return (
-                        <div key={i} className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all hover:-translate-y-1">
-                          <div className="h-40 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
-                            <span className="text-5xl">{course.skillLevel === 'beginner' ? '📄' : course.skillLevel === 'intermediate' ? '🎥' : '🔴'}</span>
-                          </div>
-                          <div className="p-6">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="text-lg font-bold">{course.title}</h3>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${course.skillLevel === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                : course.skillLevel === 'intermediate' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                }`}>{course.skillLevel}</span>
-                            </div>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">by {course.teacherName}</p>
-                            <p className="text-xs text-slate-400 mb-4">
-                              {course.skillLevel === 'beginner' ? '📄 PDF materials' : course.skillLevel === 'intermediate' ? '🎥 Video lessons' : '🔴 Live classes'}
-                            </p>
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-indigo-600 dark:text-indigo-400">₹{course.price}</span>
-                              {isEnrolled ? (
-                                <button onClick={() => { openCourse(course); setActiveTab('courses'); }} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
-                                  Open Course
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleEnroll(course)}
-                                  disabled={enrolling === course.id}
-                                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60"
-                                >
-                                  {enrolling === course.id ? 'Enrolling...' : 'Enroll Now'}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ height: '600px', position: 'relative' }}>
+                    <ChromaGrid
+                      items={courses.map((course: any) => {
+                        const isEnrolled = enrolledCourses.some((e: any) => e.id === course.id);
+                        const borderColor = course.skillLevel === 'beginner' ? '#10B981' : course.skillLevel === 'intermediate' ? '#3B82F6' : '#EF4444';
+                        const gradient = course.skillLevel === 'beginner' ? 'linear-gradient(145deg, #10B981, #000)' : course.skillLevel === 'intermediate' ? 'linear-gradient(145deg, #3B82F6, #000)' : 'linear-gradient(145deg, #EF4444, #000)';
+                        return {
+                          image: course.thumbnail || `https://via.placeholder.com/300?text=${encodeURIComponent(course.title)}`,
+                          title: course.title,
+                          subtitle: `by ${course.teacherName} • ₹${course.price}`,
+                          handle: course.skillLevel,
+                          borderColor,
+                          gradient,
+                          onClick: isEnrolled ? () => { openCourse(course); setActiveTab('courses'); } : () => handleEnroll(course),
+                          actionButton: isEnrolled ? (
+                            <span className="text-emerald-400 text-sm font-medium">Open Course</span>
+                          ) : (
+                            <span className="text-indigo-400 text-sm font-medium">Enroll Now</span>
+                          )
+                        };
+                      })}
+                      radius={300}
+                      damping={0.45}
+                      fadeOut={0.6}
+                      ease="power3.out"
+                      columns={3}
+                    />
                   </div>
                 )}
               </motion.div>
