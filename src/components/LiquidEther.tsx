@@ -978,8 +978,8 @@ export default function LiquidEther({
 
     class WebGLManager {
       props: any;
-      output: Output;
-      autoDriver: AutoDriver;
+      output!: Output;
+      autoDriver!: AutoDriver;
       lastUserInteraction = performance.now();
       running = false;
       _loop: () => void;
