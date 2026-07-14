@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Return a public URL that can be opened directly in the browser.
-    const publicUrl = `${request.nextUrl.origin}/uploads/${type}/${fileName}`;
+    const publicUrl = `/uploads/${type}/${fileName}`;
 
     return NextResponse.json(
       { 

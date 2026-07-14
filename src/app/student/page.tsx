@@ -176,9 +176,9 @@ export default function StudentDashboard() {
     if (!url) return '';
     if (/^https?:\/\//i.test(url)) return url;
     if (url.startsWith('/')) {
-      return typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
+      return url;
     }
-    return url;
+    return `/${url}`;
   };
 
   return (
