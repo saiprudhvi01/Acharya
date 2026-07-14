@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import './LiquidEther.css';
@@ -530,10 +532,12 @@ export default function LiquidEther({
       material: THREE.RawShaderMaterial | null = null;
       geometry: THREE.PlaneGeometry | null = null;
       plane: THREE.Mesh | null = null;
+      output: any = null;
 
       constructor(props: any) {
         this.props = props || {};
         this.uniforms = this.props.material?.uniforms;
+        this.output = this.props.output || null;
       }
       init(_simProps?: any) {
         this.scene = new THREE.Scene();
@@ -547,13 +551,15 @@ export default function LiquidEther({
       }
       update(_props?: any) {
         Common.renderer!.setRenderTarget(this.props.output || null);
-        Common.renderer!.render(this.scene, this.camera);
+        if (this.scene && this.camera) {
+          Common.renderer!.render(this.scene, this.camera);
+        }
         Common.renderer!.setRenderTarget(null);
       }
     }
 
     class Advection extends ShaderPass {
-      line: THREE.LineSegments;
+      line!: THREE.LineSegments;
       constructor(simProps: any) {
         super({
           material: {
@@ -600,7 +606,7 @@ export default function LiquidEther({
     }
 
     class ExternalForce extends ShaderPass {
-      mouse: THREE.Mesh;
+      mouse!: THREE.Mesh;
       constructor(simProps: any) {
         super({ output: simProps.dst });
         this.init(simProps);
@@ -636,7 +642,7 @@ export default function LiquidEther({
           Math.max(Mouse.coords.y, -1 + cursorSizeY + props.cellScale.y * 2),
           1 - cursorSizeY - props.cellScale.y * 2
         );
-        const uniforms = this.mouse.material.uniforms;
+        const uniforms = (this.mouse.material as THREE.RawShaderMaterial).uniforms;
         uniforms.force.value.set(forceX, forceY);
         uniforms.center.value.set(centerX, centerY);
         uniforms.scale.value.set(props.cursor_size, props.cursor_size);
@@ -928,6 +934,7 @@ export default function LiquidEther({
       scene!: THREE.Scene;
       camera!: THREE.Camera;
       output!: THREE.Mesh;
+      props: any;
 
       constructor() {
         this.init();
