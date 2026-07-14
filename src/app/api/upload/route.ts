@@ -8,20 +8,24 @@ function isAllowedFileType(file: File, type: string) {
   const normalizedType = type.toLowerCase();
   const mime = file.type?.toLowerCase() || '';
   const name = file.name?.toLowerCase() || '';
+  const extension = name.split('.').pop() || '';
 
   if (normalizedType === 'pdf') {
-    return mime === 'application/pdf' || name.endsWith('.pdf');
+    return mime === 'application/pdf' || name.endsWith('.pdf') || extension === 'pdf';
   }
 
   if (normalizedType === 'video') {
-    return ['video/mp4', 'video/webm', 'video/quicktime'].includes(mime);
+    return ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'].includes(mime)
+      || ['mp4', 'webm', 'mov', 'mkv'].includes(extension);
   }
 
   if (normalizedType === 'image') {
-    return ['image/jpeg', 'image/png', 'image/webp'].includes(mime);
+    return ['image/jpeg', 'image/png', 'image/webp'].includes(mime)
+      || ['jpg', 'jpeg', 'png', 'webp'].includes(extension);
   }
 
-  return ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mime);
+  return ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mime)
+    || ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'].includes(extension);
 }
 
 export async function POST(request: NextRequest) {
@@ -54,8 +58,8 @@ export async function POST(request: NextRequest) {
     };
 
     const allowedMimes = allowedTypes[type as keyof typeof allowedTypes] || allowedTypes.material;
-    
-    if (!isAllowedFileType(file, type) || !allowedMimes.includes(file.type)) {
+
+    if (!isAllowedFileType(file, type) || (!allowedMimes.includes(file.type) && file.type !== 'application/octet-stream')) {
       return NextResponse.json(
         { error: `Invalid file type for ${type}. Allowed types: ${allowedMimes.join(', ')}` },
         { status: 400 }
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Return a public URL that can be opened directly in the browser.
-    const publicUrl = `/uploads/${type}/${fileName}`;
+    const publicUrl = `/api/files/${type}/${fileName}`;
 
     return NextResponse.json(
       { 
