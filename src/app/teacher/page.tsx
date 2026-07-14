@@ -229,17 +229,7 @@ export default function TeacherDashboard() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex relative overflow-hidden">
-        {/* Background Images */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10"
-            style={{ backgroundImage: 'url(/bgimages/74d93df2-38cf-4960-ab43-a338f9e0db26.jpeg)' }} />
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 dark:opacity-8"
-            style={{ backgroundImage: 'url(/bgimages/dc90f7b1-d984-4917-8471-2ba50b792e57.jpeg)' }} />
-        </div>
-
-        {/* Gradient Overlay for better contrast */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50/97 via-slate-50/95 to-slate-50/97 dark:from-slate-950/97 dark:via-slate-950/95 dark:to-slate-950/97 pointer-events-none" />
+      <div className="min-h-screen bg-transparent flex relative overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col fixed h-full z-40 relative hidden md:flex">
           <div className="p-6 flex items-center gap-3">

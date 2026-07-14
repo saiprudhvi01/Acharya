@@ -13,9 +13,9 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1 }}>
+          <div className="fixed inset-0 -z-10 pointer-events-none">
             <LiquidEther
               colors={['#5227FF', '#FF9FFC', '#B497CF']}
               mouseForce={20}
@@ -34,7 +34,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               autoRampDuration={0.6}
             />
           </div>
-          {children}
+          <div className="relative z-10 min-h-screen">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>

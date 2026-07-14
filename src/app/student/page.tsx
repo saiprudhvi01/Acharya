@@ -73,6 +73,7 @@ export default function StudentDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedMaterial, setSelectedMaterial] = useState<any | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -171,19 +172,18 @@ export default function StudentDashboard() {
     }
   };
 
+  const resolveMaterialUrl = (url: string) => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.startsWith('/')) {
+      return typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
+    }
+    return url;
+  };
+
   return (
     <>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex relative overflow-hidden">
-        {/* Background Images */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10"
-            style={{ backgroundImage: 'url(/bgimages/dc90f7b1-d984-4917-8471-2ba50b792e57.jpeg)' }} />
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 dark:opacity-8"
-            style={{ backgroundImage: 'url(/bgimages/e8c3a632-02b6-4bd6-8ef5-6407dde96335.jpeg)' }} />
-        </div>
-
-        {/* Gradient Overlay for better contrast */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50/97 via-slate-50/95 to-slate-50/97 dark:from-slate-950/97 dark:via-slate-950/95 dark:to-slate-950/97 pointer-events-none" />
+      <div className="min-h-screen bg-transparent flex relative overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col fixed h-full z-40 relative hidden md:flex">
           <div className="p-6 flex items-center gap-2">
@@ -419,9 +419,16 @@ export default function StudentDashboard() {
                               <a href={m.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">
                                 🔴 Join Live
                               </a>
+                            ) : m.type === 'pdf' ? (
+                              <button
+                                onClick={() => setSelectedMaterial(m)}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
+                              >
+                                📄 View PDF
+                              </button>
                             ) : (
                               <a href={m.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-                                {m.type === 'pdf' ? '📅 View PDF' : '▶️ Watch'}
+                                ▶️ Watch
                               </a>
                             )}
                           </div>
@@ -505,6 +512,40 @@ export default function StudentDashboard() {
           </div>
         </main>
       </div>
+
+      {selectedMaterial && selectedMaterial.type === 'pdf' && (
+        <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl h-[85vh] rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-4 py-3">
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white">{selectedMaterial.title}</h3>
+                <p className="text-sm text-slate-500">PDF preview</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={resolveMaterialUrl(selectedMaterial.url)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Open in new tab
+                </a>
+                <button
+                  onClick={() => setSelectedMaterial(null)}
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={resolveMaterialUrl(selectedMaterial.url)}
+              title={selectedMaterial.title}
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       {payingCourse && (

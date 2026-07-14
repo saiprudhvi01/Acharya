@@ -4,6 +4,26 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { requireAuth } from '@/lib/authMiddleware';
 
+function isAllowedFileType(file: File, type: string) {
+  const normalizedType = type.toLowerCase();
+  const mime = file.type?.toLowerCase() || '';
+  const name = file.name?.toLowerCase() || '';
+
+  if (normalizedType === 'pdf') {
+    return mime === 'application/pdf' || name.endsWith('.pdf');
+  }
+
+  if (normalizedType === 'video') {
+    return ['video/mp4', 'video/webm', 'video/quicktime'].includes(mime);
+  }
+
+  if (normalizedType === 'image') {
+    return ['image/jpeg', 'image/png', 'image/webp'].includes(mime);
+  }
+
+  return ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mime);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = requireAuth(request);
@@ -35,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     const allowedMimes = allowedTypes[type as keyof typeof allowedTypes] || allowedTypes.material;
     
-    if (!allowedMimes.includes(file.type)) {
+    if (!isAllowedFileType(file, type) || !allowedMimes.includes(file.type)) {
       return NextResponse.json(
         { error: `Invalid file type for ${type}. Allowed types: ${allowedMimes.join(', ')}` },
         { status: 400 }
@@ -51,10 +71,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create upload directory if it doesn't exist
-    // Use /tmp for Render Free tier (files lost on each deployment)
-    const baseDir = process.env.RENDER ? '/tmp' : path.join(process.cwd(), 'public');
-    const uploadDir = path.join(baseDir, 'uploads', type);
+    // Store uploads in the public folder so they are accessible through the app URL.
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', type);
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
@@ -71,10 +89,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Return the public URL (note: files in /tmp won't be accessible via public URL in production)
-    const publicUrl = process.env.RENDER 
-      ? `/uploads/${type}/${fileName}` // Files won't be accessible in Render Free tier
-      : `/uploads/${type}/${fileName}`;
+    // Return a public URL that can be opened directly in the browser.
+    const publicUrl = `${request.nextUrl.origin}/uploads/${type}/${fileName}`;
 
     return NextResponse.json(
       { 
