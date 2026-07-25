@@ -1,8 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookPlus, CheckCircle2, Copy, IndianRupee, LayoutDashboard, Link2, LogOut, MessageSquare, Plus, Star, Users, Video } from "lucide-react";
+import { BookPlus, CheckCircle2, Copy, IndianRupee, LayoutDashboard, Link2, LogOut, MessageSquare, Plus, Star, Users, Video, Search } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import SearchBar, { SearchFilters } from "@/components/SearchBar";
+import SearchResults from "@/components/SearchResults";
+import OnboardingTour from "@/components/OnboardingTour";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAllowedMaterialTypesForCourseLevel } from "@/lib/courseAccess";
@@ -39,6 +42,10 @@ export default function TeacherDashboard() {
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [meetingForm, setMeetingForm] = useState({ title: "", description: "", courseId: "", scheduledFor: "", duration: "" });
   const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>({ courses: [], teachers: [], materials: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -49,6 +56,12 @@ export default function TeacherDashboard() {
     const parsed = JSON.parse(userData);
     if (parsed.role !== "teacher") { router.push("/login"); return; }
     setUser(parsed);
+
+    // Check if onboarding is completed
+    const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
 
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -227,6 +240,40 @@ export default function TeacherDashboard() {
     }
   };
 
+  const handleSearch = async (query: string, filters?: SearchFilters) => {
+    if (!query.trim()) {
+      setSearchResults({ courses: [], teachers: [], materials: [] });
+      return;
+    }
+
+    setSearchLoading(true);
+    setSearchQuery(query);
+
+    try {
+      const token = localStorage.getItem("token");
+      const params = new URLSearchParams({ q: query });
+      
+      if (filters?.type) params.append('type', filters.type);
+      if (filters?.materialType) params.append('materialType', filters.materialType);
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.subject) params.append('subject', filters.subject);
+      if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+      if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
+      if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+
+      const res = await fetch(`/api/search?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setSearchResults(data.results || { courses: [], teachers: [], materials: [] });
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults({ courses: [], teachers: [], materials: [] });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen bg-transparent flex relative overflow-hidden">
@@ -242,6 +289,7 @@ export default function TeacherDashboard() {
           <nav className="flex-1 px-4 py-6 space-y-2">
             {[
               { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+              { id: "search", icon: Search, label: "Search" },
               { id: "courses", icon: BookPlus, label: "Manage Courses" },
               { id: "live", icon: Video, label: "Live Classes" },
               { id: "students", icon: Users, label: "Students" },
@@ -357,6 +405,35 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "search" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                <h2 className="text-2xl font-bold">Search</h2>
+                <SearchBar 
+                  onSearch={handleSearch}
+                  placeholder="Search for keywords, PDFs, videos, teachers..."
+                  showFilters={true}
+                />
+                <SearchResults 
+                  results={searchResults}
+                  loading={searchLoading}
+                  onMaterialClick={(material) => {
+                    if (material.type === 'pdf') {
+                      window.open(material.url, '_blank');
+                    } else {
+                      window.open(material.url, '_blank');
+                    }
+                  }}
+                  onCourseClick={(course) => {
+                    setActiveTab('courses');
+                    setSelectedCourse(course);
+                  }}
+                  onTeacherClick={(teacher) => {
+                    console.log('Teacher clicked:', teacher);
+                  }}
+                />
               </motion.div>
             )}
 
@@ -898,6 +975,14 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Onboarding Tour */}
+      {showOnboarding && (
+        <OnboardingTour
+          onComplete={() => setShowOnboarding(false)}
+          userRole="teacher"
+        />
       )}
     </>
   );

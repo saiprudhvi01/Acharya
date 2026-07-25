@@ -37,6 +37,10 @@ export function initDB() {
       subscriptionStartDate TEXT,
       subscriptionEndDate TEXT,
       subscriptionIsActive INTEGER DEFAULT 0,
+      channelUrl TEXT,
+      hourlyRate REAL,
+      isAvailable INTEGER DEFAULT 1,
+      availabilityHours TEXT,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
